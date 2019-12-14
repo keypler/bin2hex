@@ -1,0 +1,112 @@
+bin2hex Intel-Hex converter
+
+bin2hex converts binary files (programs) to Intel-Hex format suitable
+for loading into microcomputers running an Intel-Hex loader.
+
+Usage: bin2hex [flags] input-file 
+	-f		list known input formats and exit
+	-q		quiet operation, disables output of warnings,
+			informational messages and file header dumps
+        -t              twiddle endianness, this is necessary when the
+                        file endianness cannot be automatically (as is
+                        the case with a.out) determined and the file 
+                        endianness differs from the system endianness
+	-s		use segment address records for files > 64k
+	-l		use linear address records for files > 64k
+	-z		suppress data records with all bytes equal to 0
+	-b base		start output at specified address, skips the
+			given amount of bytes of the input file
+			Warning: this is for flat binary files and might
+			not work as expected with structured input files
+	-r reloc	relocate output to specified address, for some
+			input formats this means just an offset is added
+			to the output addresses, for others it means
+			real code relocation
+	-c seg		set/override extended segment address record, the
+			output is started with the specified segment address
+			(implies -s)
+	-e entry	set/override  entry point, specified either in 
+			segment:offset notation (implies -s) or as linear
+			address (implies -l)
+        -i format	set/override input format, forcing a structured input
+			format on a flat binary might result in unexpected
+			behaviour
+        -o file		output filename (which will be overwritten if it
+			already exists)
+
+If no output file is specified standard output will be used.
+
+Known input formats:
+bin	flat binary
+	For files which have no structure besides being a chunk of 8-bit bytes.
+	If a relocation is specified it is used as start address of the output.
+	Any file can be treated as a flat binary. An initial segment
+	address record or a start address record can be created if requested.
+
+com	flat binary, DOS .COM format
+	As bin, but extended segment and start segment address records are
+	added. The extended segment defaults to 0x0100, the start segment
+	address defaults to 0x0100:0x0100. Any file can be treated as a flat
+	binary as long as -l is not used. Only the first 64k of input are used.
+
+sav	flat binary, RT-11 .SAV format
+	As bin, but a memory usage bitmap is expected in the first data block
+	which is used to determine which data blocks to convert. It is not
+	trivial to tell whether a file is a valid .SAV file, but if anything
+	strange is found warnings will be printed. The first data block is not
+	converted, which is a bad thing since it is actually part of the
+	program image. No segment address records are supported, and the
+	lack of unsegmented start address records in the Intel-Hex
+	specification makes it impossible to set an entry point.
+
+rel	flat binary, RT-11 .REL format
+	As sav, but the first block is converted, too. If relocation is
+	specified the file will actually be relocated to that address.
+
+aout16	16-bit a.out, PDP-11 Unix executable
+	This is the old original a.out format as used by PDP-11 Unix (and
+	possibly other 16-bit Unix variants). There are several variants of
+	this format, but only OMAGIC and NMAGIC are supported, with NMAGIC
+	having a gap between .text and .data segments. Wrong magic words will
+	cause warnings, but the file will then be treated as NMAGIC. No
+	segment address or start address records in this one either. If the
+	file endianness is different from the system endianness the -t flag
+	has to be used.
+
+aout32	32-bit a.out, Unix executable
+	This is the newer a.out format as used by at least 4.3BSD (but possibly
+	way earlier). Only statically linked, not demand paged executables are
+	supported. Either segmented or linear extended addresses can be
+	requested, there is no default. The default values for the segment
+	address, start segment address, linear address and linear start address
+	records is taken from the a.out header. If the file endianness is
+	different from the system endianness the -t flag has to be used.
+
+elf	32-bit Executable & Linking format
+	This is the file format used for executables by modern Unix and other
+	systems. Only 32-bit ELF version 1 executables are currently supported.
+	The segment addresses and entry point contained in the ELF headers will
+	be used, with a relocation added if specified. Only linear address records
+	can be used with this format.
+
+exe	16-bit DOS .EXE executable
+	This is the file format used by DOS for programs that don't fit in 64kb.
+	Only the old DOS format is supported, .EXE files from other operating
+	systems (Windows, OS/2, ...) are not. Programs containing a DOS extender
+	will probably not work. The default start address from the .EXE header
+	is used, the default load address is fixed at 0x0100. Both can be
+	overridden. Only segmented adress records can be used with this format.
+
+
+Adding more input formats is straightforward. An input format handler consists
+of two routines ${FORMAT}2hex() to do the actual conversion, header printout
+and warning about format mismatches, and ${FORMAT}_match to check wether a file
+can be converted using this input format (returning 1) or not (returning 0).
+A BINDECL and BINFMT entry must then be added to bin2hex.h and bin2hex.c.
+Look at the code for some examples. Care must be taken that catch-all formats
+(like bin etc.) are placed at the end.
+
+bin2hex has successfully been built on various Unix systems, OpenVMS and CygWin.
+
+Hans Rosenfeld, Mar. 2006
+rosenfeld@grumpf.hope-2000.org

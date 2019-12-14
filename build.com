@@ -1,0 +1,15 @@
+$ set on
+$ set verify
+$ cc/include=([]) bin2hex
+$ cc/include=([]) endian
+$ cc/include=([]) aout16
+$ cc/include=([]) aout32
+$ cc/include=([]) bin
+$ cc/include=([]) com
+$ cc/include=([]) elf
+$ cc/include=([]) exe
+$ cc/include=([]) rel
+$ cc/include=([]) sav
+$ link bin2hex,endian,aout16,aout32,bin,com,elf,exe,rel,sav
+$ set noverify
+$ set noon
